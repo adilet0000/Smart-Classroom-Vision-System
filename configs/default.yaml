@@ -1,0 +1,13 @@
+app:
+   window_name: "Engagement Detection"
+   show_fps: true
+
+video:
+   source: 0            # 0 = webcam, или путь к видео, или rtsp url
+   width: 1280
+   height: 720
+   target_fps: 30
+   mirror: true
+
+debug:
+   draw_center_dot: true
