@@ -5,7 +5,7 @@ import cv2
 from src.core.config import load_config
 from src.core.logger import log_info, log_warn
 from src.video.capture import VideoCapture
-from src.ui.overlay import draw_fps, draw_center_dot
+from src.ui.overlay import draw_fps, draw_center_dot, draw_bbox
 
 from src.detection.face_detector import FaceDetector
 from src.tracking.tracker import Tracker
@@ -38,6 +38,11 @@ def run() -> None:
 
       detections = detector.detect(frame)
       tracks = tracker.update(detections)
+
+      for track in tracks:
+         box = track.bbox
+         label = f"id:{track.track_id} {box.confidence:.2f}"
+         draw_bbox(frame, box.x1, box.y1, box.x2, box.y2, label)
 
 
       if cfg.debug.draw_center_dot:
