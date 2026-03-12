@@ -9,6 +9,9 @@ from src.ui.overlay import draw_fps, draw_center_dot, draw_bbox
 
 from src.detection.face_detector import FaceDetector
 from src.tracking.tracker import Tracker
+from src.recognition.face_database import FaceDatabase
+from src.recognition.face_embedder import FaceEmbedder
+from src.recognition.attendance_logic import AttendanceManager
 
 def run() -> None:
    cfg = load_config()
@@ -25,10 +28,17 @@ def run() -> None:
    )
 
    detector = FaceDetector()
-   tracker = Tracker()
+   tracker = Tracker(fps=cfg.video.target_fps)
+
+   face_db = FaceDatabase()
+   face_embedder = FaceEmbedder()
+   attendance_manager = AttendanceManager()
+   frame_index = 0
 
 
    cv2.namedWindow(cfg.app.window_name, cv2.WINDOW_NORMAL)
+
+   track_identity = {}
 
    while True:
       ok, frame = cap.read()
@@ -39,9 +49,39 @@ def run() -> None:
       detections = detector.detect(frame)
       tracks = tracker.update(detections)
 
+      frame_index += 1
+
       for track in tracks:
          box = track.bbox
-         label = f"id:{track.track_id} {box.confidence:.2f}"
+         label = track_identity.get(
+            track.track_id,
+            f"track:{track.track_id} {box.confidence:.2f}"
+         )
+
+         # Распознаем не каждый кадр, чтобы не убить FPS
+         if frame_index % 10 == 0:
+            head_crop = face_embedder.crop_head_region(
+               frame,
+               (box.x1, box.y1, box.x2, box.y2),
+            )
+
+            if head_crop.size != 0:
+               face_result = face_embedder.get_embedding(head_crop)
+
+               if face_result is not None:
+                  student_code = attendance_manager.recognize_embedding(
+                     track_id=track.track_id,
+                     embedding=face_result.embedding,
+                     db=face_db,
+                     embedder=face_embedder,
+                  )
+
+                  if student_code is not None:
+                     name = face_db.get_student_name(student_code)
+                     if name:
+                        track_identity[track.track_id] = name
+                        label = name
+
          draw_bbox(frame, box.x1, box.y1, box.x2, box.y2, label)
 
 
