@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
 
@@ -29,7 +28,6 @@ class FaceEmbedder:
       if not faces:
          return None
 
-      # Берём самое уверенное лицо
       best_face = max(faces, key=lambda f: float(f.det_score))
 
       x1, y1, x2, y2 = [int(v) for v in best_face.bbox]
@@ -42,26 +40,27 @@ class FaceEmbedder:
       )
 
    @staticmethod
-   def crop_head_region(frame: np.ndarray, person_box: tuple[int, int, int, int]) -> np.ndarray:
+   def crop_person_region(
+      frame: np.ndarray,
+      person_box: tuple[int, int, int, int],
+      top_ratio: float = 0.55,
+      side_padding_ratio: float = 0.08,
+   ) -> np.ndarray:
       x1, y1, x2, y2 = person_box
       h, w = frame.shape[:2]
 
-      x1 = max(0, x1)
-      y1 = max(0, y1)
-      x2 = min(w, x2)
-      y2 = min(h, y2)
+      box_w = x2 - x1
+      box_h = y2 - y1
 
-      person_crop = frame[y1:y2, x1:x2]
-      if person_crop.size == 0:
-         return person_crop
+      pad_x = int(box_w * side_padding_ratio)
 
-      ph, pw = person_crop.shape[:2]
+      crop_x1 = max(0, x1 - pad_x)
+      crop_y1 = max(0, y1)
+      crop_x2 = min(w, x2 + pad_x)
+      crop_y2 = min(h, y1 + int(box_h * top_ratio))
 
-      # Берем верхние 45% человека, там обычно голова + плечи
-      head_h = max(1, int(ph * 0.45))
-      head_crop = person_crop[:head_h, :pw]
-
-      return head_crop
+      crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
+      return crop
 
    @staticmethod
    def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
