@@ -42,3 +42,4 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+data/faces.db
