@@ -35,6 +35,46 @@ class VideoConfig:
 
 
 @dataclass(frozen=True)
+class DetectionConfig:
+   model_name: str = "yolov8n.pt"
+   image_size: int = 640
+   confidence_threshold: float = 0.25
+   device: str = "auto"
+
+
+@dataclass(frozen=True)
+class RecognitionConfig:
+   similarity_threshold: float = 0.45
+   confirm_matches: int = 3
+   interval_frames: int = 10
+
+
+@dataclass(frozen=True)
+class TrackingConfig:
+   cleanup_after_missing_frames: int = 60
+
+
+@dataclass(frozen=True)
+class LoggingConfig:
+   interval_frames: int = 30
+   logs_dir: str = "logs"
+
+
+@dataclass(frozen=True)
+class EngagementConfig:
+   attentive_score_threshold: float = 0.68
+   yaw_away_threshold: float = 25.0
+   pitch_down_threshold: float = -12.0
+   roll_tilt_threshold: float = 25.0
+   gaze_away_threshold: float = 0.24
+   gaze_down_threshold: float = 0.20
+   body_tilt_threshold: float = 22.0
+   eye_closed_threshold: float = 0.19
+   gaze_center_tolerance_x: float = 0.22
+   gaze_center_tolerance_y: float = 0.18
+
+
+@dataclass(frozen=True)
 class DebugConfig:
    draw_center_dot: bool = True
 
@@ -43,6 +83,11 @@ class DebugConfig:
 class Config:
    app: AppConfig
    video: VideoConfig
+   detection: DetectionConfig
+   recognition: RecognitionConfig
+   tracking: TrackingConfig
+   logging: LoggingConfig
+   engagement: EngagementConfig
    debug: DebugConfig
 
 
@@ -64,6 +109,11 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
 
    app = merged.get("app", {})
    video = merged.get("video", {})
+   detection = merged.get("detection", {})
+   recognition = merged.get("recognition", {})
+   tracking = merged.get("tracking", {})
+   logging = merged.get("logging", {})
+   engagement = merged.get("engagement", {})
    debug = merged.get("debug", {})
 
    return Config(
@@ -77,6 +127,36 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
          height=int(video.get("height", 720)),
          target_fps=int(video.get("target_fps", 30)),
          mirror=bool(video.get("mirror", True)),
+      ),
+      detection=DetectionConfig(
+         model_name=str(detection.get("model_name", "yolov8n.pt")),
+         image_size=int(detection.get("image_size", 640)),
+         confidence_threshold=float(detection.get("confidence_threshold", 0.25)),
+         device=str(detection.get("device", "auto")),
+      ),
+      recognition=RecognitionConfig(
+         similarity_threshold=float(recognition.get("similarity_threshold", 0.45)),
+         confirm_matches=int(recognition.get("confirm_matches", 3)),
+         interval_frames=int(recognition.get("interval_frames", 10)),
+      ),
+      tracking=TrackingConfig(
+         cleanup_after_missing_frames=int(tracking.get("cleanup_after_missing_frames", 60)),
+      ),
+      logging=LoggingConfig(
+         interval_frames=int(logging.get("interval_frames", 30)),
+         logs_dir=str(logging.get("logs_dir", "logs")),
+      ),
+      engagement=EngagementConfig(
+         attentive_score_threshold=float(engagement.get("attentive_score_threshold", 0.68)),
+         yaw_away_threshold=float(engagement.get("yaw_away_threshold", 25.0)),
+         pitch_down_threshold=float(engagement.get("pitch_down_threshold", -12.0)),
+         roll_tilt_threshold=float(engagement.get("roll_tilt_threshold", 25.0)),
+         gaze_away_threshold=float(engagement.get("gaze_away_threshold", 0.24)),
+         gaze_down_threshold=float(engagement.get("gaze_down_threshold", 0.20)),
+         body_tilt_threshold=float(engagement.get("body_tilt_threshold", 22.0)),
+         eye_closed_threshold=float(engagement.get("eye_closed_threshold", 0.19)),
+         gaze_center_tolerance_x=float(engagement.get("gaze_center_tolerance_x", 0.22)),
+         gaze_center_tolerance_y=float(engagement.get("gaze_center_tolerance_y", 0.18)),
       ),
       debug=DebugConfig(
          draw_center_dot=bool(debug.get("draw_center_dot", True)),

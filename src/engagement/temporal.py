@@ -42,6 +42,10 @@ class EngagementTracker:
       state = self.memory.setdefault(track_id, TrackEngagementMemory())
       state.update(label, score)
       return state
+
+   def remove_tracks(self, track_ids: set[int]) -> None:
+      for track_id in track_ids:
+         self.memory.pop(track_id, None)
    
    def class_average_score(self, active_track_ids: list[int]) -> float:
       if not active_track_ids:

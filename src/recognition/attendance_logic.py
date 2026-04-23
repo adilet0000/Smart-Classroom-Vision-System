@@ -26,6 +26,7 @@ class AttendanceManager:
       embedding,
       db: FaceDatabase,
       embedder: FaceEmbedder,
+      session_id: str,
    ) -> str | None:
       known = db.get_all_embeddings()
       if not known:
@@ -57,6 +58,10 @@ class AttendanceManager:
 
       if state.consecutive_matches >= self.confirm_matches:
          state.confirmed_student_code = best_student_code
-         db.mark_present(best_student_code, track_id)
+         db.mark_present(best_student_code, track_id, session_id)
 
       return state.confirmed_student_code
+
+   def remove_tracks(self, track_ids: set[int]) -> None:
+      for track_id in track_ids:
+         self.track_states.pop(track_id, None)

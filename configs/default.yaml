@@ -9,5 +9,35 @@ video:
    target_fps: 30
    mirror: true
 
+detection:
+   model_name: "yolov8n.pt"
+   image_size: 640
+   confidence_threshold: 0.25
+   device: "auto"       # auto, cpu, mps, cuda
+
+recognition:
+   similarity_threshold: 0.45
+   confirm_matches: 3
+   interval_frames: 10
+
+tracking:
+   cleanup_after_missing_frames: 60
+
+logging:
+   interval_frames: 30
+   logs_dir: "logs"
+
+engagement:
+   attentive_score_threshold: 0.68
+   yaw_away_threshold: 25.0
+   pitch_down_threshold: -12.0
+   roll_tilt_threshold: 25.0
+   gaze_away_threshold: 0.24
+   gaze_down_threshold: 0.20
+   body_tilt_threshold: 22.0
+   eye_closed_threshold: 0.19
+   gaze_center_tolerance_x: 0.22
+   gaze_center_tolerance_y: 0.18
+
 debug:
    draw_center_dot: true

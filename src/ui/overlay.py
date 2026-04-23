@@ -81,6 +81,27 @@ def draw_engagement_stats(
       2,
       cv2.LINE_AA,
    )
+
+def draw_feature_stats(
+   frame,
+   x1: int,
+   y1: int,
+   ear: float,
+   gaze_score: float,
+   body_tilt: float | None,
+) -> None:
+   body_text = "--" if body_tilt is None else f"{body_tilt:.0f}"
+   text = f"EAR:{ear:.2f} G:{gaze_score:.2f} B:{body_text}"
+   cv2.putText(
+      frame,
+      text,
+      (x1, y1 - 105),
+      cv2.FONT_HERSHEY_SIMPLEX,
+      0.5,
+      (180, 220, 255),
+      2,
+      cv2.LINE_AA,
+   )
    
 def draw_class_stats(frame, avg_attention: float, avg_score: float) -> None:
    text = f"CLASS A:{avg_attention:.2f} S:{avg_score:.2f}"

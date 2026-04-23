@@ -43,6 +43,7 @@ class FaceDatabase:
          """
          CREATE TABLE IF NOT EXISTS attendance_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL DEFAULT 'legacy',
             student_code TEXT NOT NULL,
             track_id INTEGER NOT NULL,
             first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -51,6 +52,23 @@ class FaceDatabase:
          )
          """
       )
+
+      self.conn.commit()
+      self._migrate_tables()
+
+   def _migrate_tables(self) -> None:
+      cursor = self.conn.cursor()
+
+      cursor.execute("PRAGMA table_info(attendance_logs)")
+      columns = {str(row[1]) for row in cursor.fetchall()}
+
+      if "session_id" not in columns:
+         cursor.execute(
+            """
+            ALTER TABLE attendance_logs
+            ADD COLUMN session_id TEXT NOT NULL DEFAULT 'legacy'
+            """
+         )
 
       self.conn.commit()
 
@@ -113,16 +131,16 @@ class FaceDatabase:
 
       return str(row[0])
 
-   def mark_present(self, student_code: str, track_id: int) -> None:
+   def mark_present(self, student_code: str, track_id: int, session_id: str) -> None:
       cursor = self.conn.cursor()
 
       cursor.execute(
          """
          SELECT id
          FROM attendance_logs
-         WHERE student_code = ? AND track_id = ? AND status = 'present'
+         WHERE session_id = ? AND student_code = ? AND track_id = ? AND status = 'present'
          """,
-         (student_code, track_id),
+         (session_id, student_code, track_id),
       )
 
       row = cursor.fetchone()
@@ -130,10 +148,10 @@ class FaceDatabase:
       if row is None:
          cursor.execute(
             """
-            INSERT INTO attendance_logs (student_code, track_id, status)
-            VALUES (?, ?, 'present')
+            INSERT INTO attendance_logs (session_id, student_code, track_id, status)
+            VALUES (?, ?, ?, 'present')
             """,
-            (student_code, track_id),
+            (session_id, student_code, track_id),
          )
       else:
          cursor.execute(

@@ -6,13 +6,13 @@ from typing import List
 import numpy as np
 import supervision as sv
 
-from src.detection.face_detector import FaceBox
+from src.detection.person_detector import PersonBox
 
 
 @dataclass
 class Track:
    track_id: int
-   bbox: FaceBox
+   bbox: PersonBox
 
 
 class Tracker:
@@ -25,7 +25,7 @@ class Tracker:
          minimum_consecutive_frames=2,
       )
 
-   def update(self, detections: List[FaceBox]) -> List[Track]:
+   def update(self, detections: List[PersonBox]) -> List[Track]:
       if not detections:
          tracked = self.tracker.update_with_detections(sv.Detections.empty())
          return []
@@ -69,7 +69,7 @@ class Tracker:
          output.append(
             Track(
                track_id=tid,
-               bbox=FaceBox(
+               bbox=PersonBox(
                   x1=x1,
                   y1=y1,
                   x2=x2,

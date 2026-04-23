@@ -1,7 +1,7 @@
 import numpy as np
 
-LEFT_EYE = [33, 34, 35, 36, 37, 38]
-RIGHT_EYE = [39, 40, 41, 42, 43, 44]
+LEFT_EYE = [33, 160, 158, 133, 153, 144]
+RIGHT_EYE = [362, 385, 387, 263, 373, 380]
 
 class EyeStateDetector:
     def __init__(self, threshold: float = 0.2, min_frames_closed: int = 3):
