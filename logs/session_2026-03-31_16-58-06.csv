@@ -1,0 +1,9 @@
+timestamp,track_id,name,label,score,attentive_ratio,class_avg_attention,class_avg_score
+2026-03-31T16:58:08.874661,1,Nursultan Ismankulov,attentive,1.0,1.0,1.0,1.0
+2026-03-31T16:58:10.309991,1,Nursultan Ismankulov,attentive,1.0,1.0,1.0,1.0
+2026-03-31T16:58:11.732020,1,Nursultan Ismankulov,attentive,1.0,1.0,1.0,1.0
+2026-03-31T16:58:13.147355,1,Nursultan Ismankulov,attentive,1.0,1.0,1.0,1.0
+2026-03-31T16:58:14.521972,1,Nursultan Ismankulov,attentive,1.0,1.0,1.0,1.0
+2026-03-31T16:58:15.852804,1,Nursultan Ismankulov,away,0.4,0.9333333333333333,0.9333333333333333,0.9600000000000004
+2026-03-31T16:58:17.260956,1,Nursultan Ismankulov,away,0.4,0.5466666666666666,0.5466666666666666,0.7279999999999993
+2026-03-31T16:58:18.665461,1,Nursultan Ismankulov,attentive,1.0,0.3466666666666667,0.3466666666666667,0.6079999999999992
