@@ -16,13 +16,28 @@ class Track:
 
 
 class Tracker:
-   def __init__(self, fps: int = 30) -> None:
+   def __init__(
+      self,
+      fps: int = 30,
+      track_activation_threshold: float = 0.25,
+      lost_track_buffer: int = 30,
+      minimum_matching_threshold: float = 0.8,
+      minimum_consecutive_frames: int = 2,
+   ) -> None:
+      # All tuning knobs are config-driven so tracking can be stabilised per
+      # scene without code changes:
+      #   track_activation_threshold  — higher = fewer spurious new tracks
+      #   lost_track_buffer           — frames an occluded track survives before
+      #                                 a re-appearance gets a fresh id
+      #   minimum_matching_threshold  — IoU gate for associating detections
+      #   minimum_consecutive_frames  — frames before a track is confirmed
+      #                                 (suppresses one-frame id flicker)
       self.tracker = sv.ByteTrack(
-         track_activation_threshold=0.25,
-         lost_track_buffer=30,
-         minimum_matching_threshold=0.8,
+         track_activation_threshold=track_activation_threshold,
+         lost_track_buffer=lost_track_buffer,
+         minimum_matching_threshold=minimum_matching_threshold,
          frame_rate=fps,
-         minimum_consecutive_frames=2,
+         minimum_consecutive_frames=minimum_consecutive_frames,
       )
 
    def update(self, detections: List[PersonBox]) -> List[Track]:

@@ -6,6 +6,8 @@ from typing import Optional
 import numpy as np
 from insightface.app import FaceAnalysis
 
+from src.core.geometry import crop_head_region
+
 
 @dataclass
 class FaceEmbeddingResult:
@@ -16,9 +18,12 @@ class FaceEmbeddingResult:
 
 class FaceEmbedder:
    def __init__(self) -> None:
+      # Only the detection + recognition models are needed for embeddings;
+      # loading genderage/landmark models wastes startup time and memory.
       self.app = FaceAnalysis(
          name="buffalo_l",
          providers=["CPUExecutionProvider"],
+         allowed_modules=["detection", "recognition"],
       )
       self.app.prepare(ctx_id=0, det_size=(640, 640))
 
@@ -46,21 +51,11 @@ class FaceEmbedder:
       top_ratio: float = 0.55,
       side_padding_ratio: float = 0.08,
    ) -> np.ndarray:
-      x1, y1, x2, y2 = person_box
-      h, w = frame.shape[:2]
-
-      box_w = x2 - x1
-      box_h = y2 - y1
-
-      pad_x = int(box_w * side_padding_ratio)
-
-      crop_x1 = max(0, x1 - pad_x)
-      crop_y1 = max(0, y1)
-      crop_x2 = min(w, x2 + pad_x)
-      crop_y2 = min(h, y1 + int(box_h * top_ratio))
-
-      crop = frame[crop_y1:crop_y2, crop_x1:crop_x2]
-      return crop
+      # Delegates to the shared, unit-tested geometry helper so cropping and
+      # clamping behave identically to the detector.
+      return crop_head_region(
+         frame, person_box, top_ratio=top_ratio, side_padding_ratio=side_padding_ratio
+      )
 
    @staticmethod
    def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:

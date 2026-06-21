@@ -119,6 +119,7 @@ def draw_debug_panel(
    recognized_count: int,
    class_avg_score: float,
    class_attentive_ratio: float,
+   device: str | None = None,
 ) -> None:
    """
    Compact debug info panel drawn in the bottom-left corner.
@@ -130,6 +131,7 @@ def draw_debug_panel(
      Recognized     — number of identity-confirmed tracks this session
      Cls Score      — class-average engagement score [0, 1]
      Cls Attentive  — fraction of class currently labelled attentive [0, 1]
+     Device         — detector inference device (when provided)
    """
    lines = [
       f"FPS:           {fps:.1f}",
@@ -138,8 +140,10 @@ def draw_debug_panel(
       f"Cls Score:     {class_avg_score:.2f}",
       f"Cls Attentive: {class_attentive_ratio:.2f}",
    ]
+   if device:
+      lines.append(f"Device:        {device}")
 
-   h, w = frame.shape[:2]
+   h = frame.shape[0]
    line_h = 22
    padding = 10
    panel_h = len(lines) * line_h + padding * 2

@@ -89,8 +89,17 @@ def run() -> None:
         image_size=cfg.detection.image_size,
         confidence_threshold=cfg.detection.confidence_threshold,
         device=cfg.detection.device,
+        min_box_width=cfg.detection.min_box_width,
+        min_box_height=cfg.detection.min_box_height,
+        min_box_area=cfg.detection.min_box_area,
     )
-    tracker = Tracker(fps=cfg.video.target_fps)
+    tracker = Tracker(
+        fps=cfg.video.target_fps,
+        track_activation_threshold=cfg.tracking.track_activation_threshold,
+        lost_track_buffer=cfg.tracking.lost_track_buffer,
+        minimum_matching_threshold=cfg.tracking.minimum_matching_threshold,
+        minimum_consecutive_frames=cfg.tracking.minimum_consecutive_frames,
+    )
 
     face_db      = FaceDatabase()
     face_embedder = FaceEmbedder()
@@ -112,7 +121,7 @@ def run() -> None:
         gaze_center_tolerance_x=cfg.engagement.gaze_center_tolerance_x,
         gaze_center_tolerance_y=cfg.engagement.gaze_center_tolerance_y,
     )
-    body_pose_estimator = BodyPoseEstimator()
+    body_pose_estimator = BodyPoseEstimator() if cfg.engagement.use_body_pose else None
 
     scoring_config = EngagementScoringConfig(
         attentive_score_threshold=cfg.engagement.attentive_score_threshold,
@@ -233,7 +242,7 @@ def run() -> None:
             draw_pose(frame, box.x1, box.y1, pose.yaw, pose.pitch, pose.roll)
 
             body_pose = None
-            if full_crop.size > 0:
+            if body_pose_estimator is not None and full_crop.size > 0:
                 body_pose = body_pose_estimator.estimate(full_crop)
 
             # ── Stage 6: Engagement scoring ────────────────────────────────
@@ -293,6 +302,7 @@ def run() -> None:
                 recognized_count=len(confirmed_tracks),
                 class_avg_score=class_avg_score,
                 class_attentive_ratio=class_avg_attention,
+                device=detector.device,
             )
 
         # ── Stage 9: CSV logging ───────────────────────────────────────────

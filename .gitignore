@@ -22,8 +22,22 @@ __pycache__/
 # Dataset / video files (если будут большие)
 data/raw/
 videos/
+photos/
 *.mp4
 *.avi
+*.mov
+*.mkv
+
+# Databases & generated analytics (regenerated at runtime — keep out of git)
+data/*.db
+data/*.csv
+logs/*.csv
+reports/
+
+# Model weights (downloaded / large binaries)
+*.pt
+*.onnx
+*.tflite
 
 # Jupyter (если вдруг)
 .ipynb_checkpoints/

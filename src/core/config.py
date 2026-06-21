@@ -39,7 +39,11 @@ class DetectionConfig:
    model_name: str = "yolov8n.pt"
    image_size: int = 640
    confidence_threshold: float = 0.25
-   device: str = "auto"
+   device: str = "auto"   # auto, cpu, mps, cuda
+   # Garbage-box filter: detections smaller than these are discarded.
+   min_box_width: int = 20
+   min_box_height: int = 40
+   min_box_area: int = 0   # 0 = no area constraint (use width/height only)
 
 
 @dataclass(frozen=True)
@@ -55,7 +59,13 @@ class RecognitionConfig:
 
 @dataclass(frozen=True)
 class TrackingConfig:
+   # How long an identity/engagement state is kept after a track disappears.
    cleanup_after_missing_frames: int = 60
+   # ── ByteTrack tuning (forwarded to supervision.ByteTrack) ───────────────
+   track_activation_threshold: float = 0.25
+   lost_track_buffer: int = 30
+   minimum_matching_threshold: float = 0.8
+   minimum_consecutive_frames: int = 2
 
 
 @dataclass(frozen=True)
@@ -93,6 +103,12 @@ class EngagementConfig:
 
    # ── Composite score ────────────────────────────────────────────────────
    attentive_score_threshold: float = 0.60
+
+   # ── Body pose ──────────────────────────────────────────────────────────
+   # Body pose runs a second MediaPipe graph per track per frame; disabling it
+   # is the single biggest FPS win when many people are in frame. It only
+   # contributes 10% of the composite score, so disabling degrades gracefully.
+   use_body_pose: bool = True
 
    # ── Temporal window ────────────────────────────────────────────────────
    # Number of frames in the sliding deque for per-track history.
@@ -160,6 +176,9 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
          image_size=int(detection.get("image_size", 640)),
          confidence_threshold=float(detection.get("confidence_threshold", 0.25)),
          device=str(detection.get("device", "auto")),
+         min_box_width=int(detection.get("min_box_width", 20)),
+         min_box_height=int(detection.get("min_box_height", 40)),
+         min_box_area=int(detection.get("min_box_area", 0)),
       ),
       recognition=RecognitionConfig(
          similarity_threshold=float(recognition.get("similarity_threshold", 0.45)),
@@ -169,6 +188,10 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
       ),
       tracking=TrackingConfig(
          cleanup_after_missing_frames=int(tracking.get("cleanup_after_missing_frames", 60)),
+         track_activation_threshold=float(tracking.get("track_activation_threshold", 0.25)),
+         lost_track_buffer=int(tracking.get("lost_track_buffer", 30)),
+         minimum_matching_threshold=float(tracking.get("minimum_matching_threshold", 0.8)),
+         minimum_consecutive_frames=int(tracking.get("minimum_consecutive_frames", 2)),
       ),
       logging=LoggingConfig(
          interval_frames=int(logging_.get("interval_frames", 30)),
@@ -185,6 +208,7 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
          gaze_center_tolerance_x=float(engagement.get("gaze_center_tolerance_x", 0.22)),
          gaze_center_tolerance_y=float(engagement.get("gaze_center_tolerance_y", 0.18)),
          attentive_score_threshold=float(engagement.get("attentive_score_threshold", 0.60)),
+         use_body_pose=bool(engagement.get("use_body_pose", True)),
          temporal_window_frames=int(engagement.get("temporal_window_frames", 90)),
       ),
       debug=DebugConfig(

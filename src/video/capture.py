@@ -15,6 +15,11 @@ class VideoCapture:
       self.mirror = mirror
 
       self.cap = cv2.VideoCapture(source)
+      if not self.cap.isOpened():
+         raise RuntimeError(
+            f"Could not open video source {source!r}. "
+            "Check the camera index / file path / RTSP URL and camera permissions."
+         )
       self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
       self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
@@ -25,7 +30,7 @@ class VideoCapture:
    def fps(self) -> float:
       return self._fps
 
-   def read(self) -> tuple[bool, Optional[any]]:
+   def read(self) -> tuple[bool, Optional[Any]]:
       ok, frame = self.cap.read()
       if not ok or frame is None:
          return False, None

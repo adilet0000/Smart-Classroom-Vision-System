@@ -13,7 +13,11 @@ detection:
   model_name: "yolov8n.pt"
   image_size: 640
   confidence_threshold: 0.25
-  device: "auto"       # auto, cpu, mps, cuda
+  device: "auto"          # auto, cpu, mps, cuda. auto -> mps on Apple Silicon (M1-M4)
+  # Garbage-box filter — drop detections smaller than this (pixels).
+  min_box_width: 20
+  min_box_height: 40
+  min_box_area: 0         # 0 = ignore area, use width/height only
 
 recognition:
   similarity_threshold: 0.45
@@ -22,7 +26,14 @@ recognition:
   min_face_det_score: 0.70  # discard InsightFace detections below this quality score
 
 tracking:
-  cleanup_after_missing_frames: 60
+  cleanup_after_missing_frames: 60   # frames to keep identity/engagement after a track vanishes
+  # ── ByteTrack tuning (via supervision) ──────────────────────────────────
+  # Raise activation/consecutive to reduce id flicker; raise lost_track_buffer
+  # to keep ids through brief occlusion.
+  track_activation_threshold: 0.25
+  lost_track_buffer: 30
+  minimum_matching_threshold: 0.8
+  minimum_consecutive_frames: 2
 
 logging:
   interval_frames: 30   # write a CSV row every N frames per recognized student
@@ -51,6 +62,11 @@ engagement:
   # ── Composite score ────────────────────────────────────────────────────────
   # Student is labelled "attentive" when all hard-rules pass AND score >= this.
   attentive_score_threshold: 0.60
+
+  # ── Body pose ───────────────────────────────────────────────────────────────
+  # Runs a second MediaPipe graph per track per frame. Disable for a big FPS
+  # win with many people; it only contributes 10% of the score.
+  use_body_pose: true
 
   # ── Temporal smoothing window ──────────────────────────────────────────────
   # Frames kept in the per-track sliding history deque.

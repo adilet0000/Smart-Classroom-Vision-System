@@ -23,9 +23,9 @@ class EmbeddingCache:
     """Pre-loaded, L2-normalized face embeddings for fast cosine similarity search."""
 
     def __init__(self) -> None:
-        # Parallel lists: codes[i] matches normed_embeddings[i]
+        # codes[i] matches row i of the stacked, unit-normed matrix.
         self._codes: list[str] = []
-        self._normed: list[np.ndarray] = []  # each already unit-norm
+        self._matrix: np.ndarray = np.empty((0, 0), dtype=np.float32)  # (N, D)
 
     # ── Construction ──────────────────────────────────────────────────────
 
@@ -38,8 +38,12 @@ class EmbeddingCache:
 
     def reload(self, db: FaceDatabase) -> None:
         """
-        Re-read all embeddings from the database.
+        Re-read all embeddings from the database and rebuild the search matrix.
         Call this if faces are enrolled while the system is running.
+
+        The embeddings are L2-normalized and stacked into a single (N, D) matrix
+        once here, so the hot-path search is a single matrix-vector product with
+        no per-call allocation.
         """
         rows = db.get_all_embeddings()   # list[tuple[str, np.ndarray]]
         codes: list[str] = []
@@ -53,7 +57,13 @@ class EmbeddingCache:
             normed.append((embedding / norm).astype(np.float32))
 
         self._codes = codes
-        self._normed = normed
+        self._matrix = (
+            np.stack(normed, axis=0) if normed else np.empty((0, 0), dtype=np.float32)
+        )
+
+    def reload_embeddings(self, db: FaceDatabase) -> None:
+        """Explicit alias for :meth:`reload` — re-read embeddings from the DB."""
+        self.reload(db)
 
     # ── Search ────────────────────────────────────────────────────────────
 
@@ -79,10 +89,8 @@ class EmbeddingCache:
             return None
         q = (query / q_norm).astype(np.float32)
 
-        # Dot product against all stored embeddings in one BLAS call
-        # (faster than a Python loop for > ~10 entries)
-        matrix = np.stack(self._normed, axis=0)   # (N, D)
-        similarities = matrix @ q                  # (N,)
+        # Single BLAS matrix-vector product against the pre-stacked matrix.
+        similarities = self._matrix @ q            # (N,)
 
         # Aggregate per student: keep max similarity across multiple embeddings
         best_per_student: dict[str, float] = {}
