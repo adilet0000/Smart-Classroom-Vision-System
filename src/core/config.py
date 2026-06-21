@@ -46,7 +46,11 @@ class DetectionConfig:
 class RecognitionConfig:
    similarity_threshold: float = 0.45
    confirm_matches: int = 3
+   # How many frames between recognition attempts per unconfirmed track.
+   # Higher = cheaper; lower = faster first-recognition.
    interval_frames: int = 10
+   # Minimum face detection score from InsightFace to use an embedding.
+   min_face_det_score: float = 0.70
 
 
 @dataclass(frozen=True)
@@ -56,27 +60,51 @@ class TrackingConfig:
 
 @dataclass(frozen=True)
 class LoggingConfig:
+   # Write a CSV row every N frames for each recognized student.
    interval_frames: int = 30
    logs_dir: str = "logs"
 
 
 @dataclass(frozen=True)
 class EngagementConfig:
-   attentive_score_threshold: float = 0.68
+   # ── Head pose thresholds (degrees — calibrated for corrected solvePnP output) ──
+   # yaw: 0 = facing camera, positive = turning right, negative = turning left.
+   # A student is "looking away" when |yaw| > yaw_away_threshold.
    yaw_away_threshold: float = 25.0
-   pitch_down_threshold: float = -12.0
-   roll_tilt_threshold: float = 25.0
-   gaze_away_threshold: float = 0.24
-   gaze_down_threshold: float = 0.20
+
+   # pitch: 0 = level, negative = looking down, positive = looking up.
+   # A student is "looking down" when pitch < pitch_down_threshold.
+   pitch_down_threshold: float = -8.0
+
+   # roll: 0 = upright, ± = head tilt. Rarely engagement-breaking.
+   roll_tilt_threshold: float = 20.0
+
+   # ── Gaze thresholds (normalized iris offset, 0 = centered) ─────────────
+   gaze_away_threshold: float = 0.25
+   gaze_down_threshold: float = 0.22
+
+   # ── Body pose ──────────────────────────────────────────────────────────
    body_tilt_threshold: float = 22.0
+
+   # ── Eye state ──────────────────────────────────────────────────────────
    eye_closed_threshold: float = 0.19
    gaze_center_tolerance_x: float = 0.22
    gaze_center_tolerance_y: float = 0.18
+
+   # ── Composite score ────────────────────────────────────────────────────
+   attentive_score_threshold: float = 0.60
+
+   # ── Temporal window ────────────────────────────────────────────────────
+   # Number of frames in the sliding deque for per-track history.
+   # At 30 fps: 90 frames ≈ 3 seconds of smoothing.
+   temporal_window_frames: int = 90
 
 
 @dataclass(frozen=True)
 class DebugConfig:
    draw_center_dot: bool = True
+   # Show the compact debug panel (FPS, tracks, IDs, class score, etc.)
+   show_debug_panel: bool = True
 
 
 @dataclass(frozen=True)
@@ -99,7 +127,6 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
    if path.exists():
       data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
-   # override из env (если захочешь)
    env_overrides: dict[str, Any] = {}
    video_source = os.getenv("VIDEO_SOURCE")
    if video_source:
@@ -107,14 +134,14 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
 
    merged = _deep_merge(data, env_overrides)
 
-   app = merged.get("app", {})
-   video = merged.get("video", {})
-   detection = merged.get("detection", {})
+   app        = merged.get("app", {})
+   video      = merged.get("video", {})
+   detection  = merged.get("detection", {})
    recognition = merged.get("recognition", {})
-   tracking = merged.get("tracking", {})
-   logging = merged.get("logging", {})
+   tracking   = merged.get("tracking", {})
+   logging_   = merged.get("logging", {})
    engagement = merged.get("engagement", {})
-   debug = merged.get("debug", {})
+   debug      = merged.get("debug", {})
 
    return Config(
       app=AppConfig(
@@ -138,27 +165,30 @@ def load_config(config_path: str = "configs/default.yaml") -> Config:
          similarity_threshold=float(recognition.get("similarity_threshold", 0.45)),
          confirm_matches=int(recognition.get("confirm_matches", 3)),
          interval_frames=int(recognition.get("interval_frames", 10)),
+         min_face_det_score=float(recognition.get("min_face_det_score", 0.70)),
       ),
       tracking=TrackingConfig(
          cleanup_after_missing_frames=int(tracking.get("cleanup_after_missing_frames", 60)),
       ),
       logging=LoggingConfig(
-         interval_frames=int(logging.get("interval_frames", 30)),
-         logs_dir=str(logging.get("logs_dir", "logs")),
+         interval_frames=int(logging_.get("interval_frames", 30)),
+         logs_dir=str(logging_.get("logs_dir", "logs")),
       ),
       engagement=EngagementConfig(
-         attentive_score_threshold=float(engagement.get("attentive_score_threshold", 0.68)),
          yaw_away_threshold=float(engagement.get("yaw_away_threshold", 25.0)),
-         pitch_down_threshold=float(engagement.get("pitch_down_threshold", -12.0)),
-         roll_tilt_threshold=float(engagement.get("roll_tilt_threshold", 25.0)),
-         gaze_away_threshold=float(engagement.get("gaze_away_threshold", 0.24)),
-         gaze_down_threshold=float(engagement.get("gaze_down_threshold", 0.20)),
+         pitch_down_threshold=float(engagement.get("pitch_down_threshold", -8.0)),
+         roll_tilt_threshold=float(engagement.get("roll_tilt_threshold", 20.0)),
+         gaze_away_threshold=float(engagement.get("gaze_away_threshold", 0.25)),
+         gaze_down_threshold=float(engagement.get("gaze_down_threshold", 0.22)),
          body_tilt_threshold=float(engagement.get("body_tilt_threshold", 22.0)),
          eye_closed_threshold=float(engagement.get("eye_closed_threshold", 0.19)),
          gaze_center_tolerance_x=float(engagement.get("gaze_center_tolerance_x", 0.22)),
          gaze_center_tolerance_y=float(engagement.get("gaze_center_tolerance_y", 0.18)),
+         attentive_score_threshold=float(engagement.get("attentive_score_threshold", 0.60)),
+         temporal_window_frames=int(engagement.get("temporal_window_frames", 90)),
       ),
       debug=DebugConfig(
          draw_center_dot=bool(debug.get("draw_center_dot", True)),
+         show_debug_panel=bool(debug.get("show_debug_panel", True)),
       ),
    )

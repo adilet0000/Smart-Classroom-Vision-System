@@ -1,43 +1,63 @@
 app:
-   window_name: "Engagement Detection"
-   show_fps: true
+  window_name: "Engagement Detection"
+  show_fps: true
 
 video:
-   source: 0            # 0 = webcam, или путь к видео, или rtsp url
-   width: 1280
-   height: 720
-   target_fps: 30
-   mirror: true
+  source: 0            # 0 = webcam, path to video file, or rtsp:// URL
+  width: 1280
+  height: 720
+  target_fps: 30
+  mirror: true
 
 detection:
-   model_name: "yolov8n.pt"
-   image_size: 640
-   confidence_threshold: 0.25
-   device: "auto"       # auto, cpu, mps, cuda
+  model_name: "yolov8n.pt"
+  image_size: 640
+  confidence_threshold: 0.25
+  device: "auto"       # auto, cpu, mps, cuda
 
 recognition:
-   similarity_threshold: 0.45
-   confirm_matches: 3
-   interval_frames: 10
+  similarity_threshold: 0.45
+  confirm_matches: 3
+  interval_frames: 10       # attempt recognition every N frames per unconfirmed track
+  min_face_det_score: 0.70  # discard InsightFace detections below this quality score
 
 tracking:
-   cleanup_after_missing_frames: 60
+  cleanup_after_missing_frames: 60
 
 logging:
-   interval_frames: 30
-   logs_dir: "logs"
+  interval_frames: 30   # write a CSV row every N frames per recognized student
+  logs_dir: "logs"
 
 engagement:
-   attentive_score_threshold: 0.68
-   yaw_away_threshold: 25.0
-   pitch_down_threshold: -12.0
-   roll_tilt_threshold: 25.0
-   gaze_away_threshold: 0.24
-   gaze_down_threshold: 0.20
-   body_tilt_threshold: 22.0
-   eye_closed_threshold: 0.19
-   gaze_center_tolerance_x: 0.22
-   gaze_center_tolerance_y: 0.18
+  # ── Head pose (degrees — real values after fixing the *360 bug) ──────────
+  # yaw  ≈ 0 facing camera; ±25° is clearly off-axis for a seated student
+  yaw_away_threshold: 25.0
+  # pitch ≈ 0 level; -8° is noticeably chin-down toward desk
+  pitch_down_threshold: -8.0
+  roll_tilt_threshold: 20.0
+
+  # ── Gaze (normalized iris offset, 0 = centered, ±0.5 = edge of eye) ─────
+  gaze_away_threshold: 0.25
+  gaze_down_threshold: 0.22
+
+  # ── Body pose ─────────────────────────────────────────────────────────────
+  body_tilt_threshold: 22.0
+
+  # ── Eye state ─────────────────────────────────────────────────────────────
+  eye_closed_threshold: 0.19
+  gaze_center_tolerance_x: 0.22
+  gaze_center_tolerance_y: 0.18
+
+  # ── Composite score ────────────────────────────────────────────────────────
+  # Student is labelled "attentive" when all hard-rules pass AND score >= this.
+  attentive_score_threshold: 0.60
+
+  # ── Temporal smoothing window ──────────────────────────────────────────────
+  # Frames kept in the per-track sliding history deque.
+  # At 30 fps: 90 frames ≈ 3 seconds of smoothing.
+  temporal_window_frames: 90
 
 debug:
-   draw_center_dot: true
+  draw_center_dot: true
+  # Show the compact debug overlay panel (FPS, tracks, IDs, class score)
+  show_debug_panel: true

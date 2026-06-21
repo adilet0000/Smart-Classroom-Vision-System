@@ -112,9 +112,16 @@ class HeadPoseEstimator:
       rmat, _ = cv2.Rodrigues(rot_vec)
       angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
 
-      pitch = float(angles[0] * 360)
-      yaw = float(angles[1] * 360)
-      roll = float(angles[2] * 360)
+      # cv2.RQDecomp3x3 returns angles already in degrees.
+      # DO NOT multiply by 360 — that was a critical bug producing ±9000° values.
+      #
+      # Real-world ranges for a seated student facing a camera:
+      #   yaw   (left/right turn): roughly ±0–45°  (straight ahead ≈ 0)
+      #   pitch (up/down tilt):    roughly -20° to +10°  (looking down is negative)
+      #   roll  (head tilt):       roughly ±0–20°
+      pitch = float(angles[0])
+      yaw   = float(angles[1])
+      roll  = float(angles[2])
       ear = self._eye_aspect_ratio(face_landmarks, w, h)
       gaze_x, gaze_y, gaze_score = self._gaze(face_landmarks, w, h)
 
